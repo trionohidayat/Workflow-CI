@@ -14,15 +14,16 @@ print(f"[-] Menginisialisasi DagsHub untuk {REPO_OWNER}/{REPO_NAME}...")
 dagshub.init(repo_owner=REPO_OWNER, repo_name=REPO_NAME, mlflow=True)
 
 def run_retraining():
-    # 2. Jalur dataset fleksibel
-    data_path = "WA_Fn-UseC_-Telco-Customer-Churn.csv"
+    # MENGGUNAKAN JALUR MUTLAK: Mendeteksi posisi file di root proyek secara dinamis
+    current_dir = os.path.dirname(os.path.abspath(__file__)) # Folder MLProject
+    root_dir = os.path.abspath(os.path.join(current_dir, "..")) # Folder Root Proyek
+    
+    data_path = os.path.join(root_dir, "WA_Fn-UseC_-Telco-Customer-Churn.csv")
+    
     if not os.path.exists(data_path):
-        data_path = "../WA_Fn-UseC_-Telco-Customer-Churn.csv"
+        raise FileNotFoundError(f"Dataset tidak ditemukan di jalur absolut: {data_path}")
         
-    if not os.path.exists(data_path):
-        raise FileNotFoundError("Dataset tidak ditemukan di jalur lokal maupun parent directory.")
-        
-    print(f"[-] Membaca dataset dari jalur: {data_path}")
+    print(f"[-] Membaca dataset dari jalur absolut: {data_path}")
     df = pd.read_csv(data_path)
     
     # 3. Preprocessing Esensial
