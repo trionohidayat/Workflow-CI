@@ -34,4 +34,4 @@ jobs:
       env:
         DAGSHUB_CLIENT_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
       run: |
-        python MLProject/modelling_automation.py
+        python MLProject/modelling_automation.py 50 5
