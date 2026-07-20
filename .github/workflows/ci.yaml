@@ -29,15 +29,12 @@ jobs:
         python -m pip install --upgrade pip
         pip install mlflow==2.19.0 dagshub scikit-learn pandas numpy
 
-# 4. Inisialisasi Environment Tracking MLflow secara Global lalu Jalankan MLflow Project
+# 4. Jalankan Otomatisasi Retraining Secara Langsung Menggunakan Python CLI
     - name: Run MLflow Project (Retraining)
       env:
         DAGSHUB_CLIENT_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
         MLFLOW_TRACKING_USERNAME: trionohidayat3
         MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
       run: |
-        # 1. Konfigurasi kredensial global DagsHub di mesin runner
-        dagshub login --token ${{ secrets.DAGSHUB_TOKEN }}
-        
-        # 2. Jalankan retraining model dengan meneruskan variabel lingkungan sistem
-        mlflow run MLProject/ --env-manager local
+        # Jalankan script otomasi secara langsung dari root folder proyek
+        python MLProject/modelling_automation.py
