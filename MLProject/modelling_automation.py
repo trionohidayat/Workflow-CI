@@ -14,7 +14,7 @@ print(f"[-] Menginisialisasi DagsHub untuk {REPO_OWNER}/{REPO_NAME}...")
 dagshub.init(repo_owner=REPO_OWNER, repo_name=REPO_NAME, mlflow=True)
 
 def run_retraining():
-    # 2. Jalur dataset yang fleksibel (lokal & parent directory)
+    # 2. Jalur dataset fleksibel
     data_path = "WA_Fn-UseC_-Telco-Customer-Churn.csv"
     if not os.path.exists(data_path):
         data_path = "../WA_Fn-UseC_-Telco-Customer-Churn.csv"
@@ -25,9 +25,10 @@ def run_retraining():
     print(f"[-] Membaca dataset dari jalur: {data_path}")
     df = pd.read_csv(data_path)
     
-    # 3. Proses Preprocessing Kilat
+    # 3. Preprocessing Esensial
     df['TotalCharges'] = pd.to_numeric(df['TotalCharges'], errors='coerce')
-    df['TotalCharges'].fillna(df['TotalCharges'].median(), inplace=True)
+    # Mengatasi FutureWarning dengan method penugasan standar pandas 3.0
+    df['TotalCharges'] = df['TotalCharges'].fillna(df['TotalCharges'].median())
     
     if 'customerID' in df.columns:
         df = df.drop(columns=['customerID'])
@@ -41,36 +42,20 @@ def run_retraining():
         X_encoded, y, test_size=0.2, random_state=42, stratify=y
     )
     
-    # 4. Eksperimen Menggunakan Run Aktif dari MLflow Project CLI
-    # Menggunakan nested=True atau langsung mendeteksi active run agar tidak crash 'Run not found'
-    active_run = mlflow.active_run()
-    
-    if active_run:
-        print(f"[+] Menggunakan Run Aktif dari GitHub Actions Pipeline: {active_run.info.run_id}")
-        # Melatih model langsung di dalam active run
+    # 4. Gunakan nested=True agar MLflow Project di runner mengizinkan pembuatan run eksperimen
+    print("[-] Melatih model automasi dengan mode nested run...")
+    with mlflow.start_run(run_name="GitHub_Actions_Automation", nested=True):
         model = RandomForestClassifier(n_estimators=50, max_depth=5, random_state=42)
         model.fit(X_train, y_train)
         
         acc = model.score(X_test, y_test)
         
-        # Log langsung ke run yang aktif saat ini
+        # Logging data
         mlflow.log_param("n_estimators", 50)
         mlflow.log_param("max_depth", 5)
         mlflow.log_metric("accuracy", acc)
         mlflow.sklearn.log_model(model, "automated_model")
         print(f"[+] Automated Retraining Sukses! Akurasi Model Baru: {acc:.4f}")
-    else:
-        # Cadangan jika script dijalankan manual secara lokal di luar perintah `mlflow run`
-        mlflow.set_experiment("Automated_Retraining")
-        with mlflow.start_run(run_name="Local_Manual_Run"):
-            model = RandomForestClassifier(n_estimators=50, max_depth=5, random_state=42)
-            model.fit(X_train, y_train)
-            acc = model.score(X_test, y_test)
-            mlflow.log_param("n_estimators", 50)
-            mlflow.log_param("max_depth", 5)
-            mlflow.log_metric("accuracy", acc)
-            mlflow.sklearn.log_model(model, "automated_model")
-            print(f"[+] Manual Retraining Sukses! Akurasi Model: {acc:.4f}")
 
 if __name__ == "__main__":
     run_retraining()
