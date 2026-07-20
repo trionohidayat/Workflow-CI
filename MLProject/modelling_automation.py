@@ -12,25 +12,45 @@ REPO_NAME = "my-first-repo"
 dagshub.init(repo_owner=REPO_OWNER, repo_name=REPO_NAME, mlflow=True)
 
 def run_retraining():
-    # Menggunakan URL dataset langsung agar aman saat dijalankan di server GitHub
-    url = "https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-04-21/gdpr_violations.tsv" 
-    # Catatan: Kita ganti dengan link raw github dataset churn kalian nanti agar pipeline lancar
+    # MEMPERBAIKI JALUR DATASET: Membaca file lokal yang ada di root repository
+    # Jalur ini disesuaikan karena GitHub Actions menjalankan perintah dari root folder
+    data_path = "WA_Fn-UseC_-Telco-Customer-Churn.csv"
     
-    # Preprocessing kilat untuk automasi
-    df = pd.read_csv("https://raw.githubusercontent.com/Triono-Hidayat/dataset-dummy/main/churn_cleaned.csv") # Contoh link raw
+    if not os.path.exists(data_path):
+        raise FileNotFoundError(f"Dataset tidak ditemukan di jalur: {os.path.abspath(data_path)}")
+        
+    print(f"[-] Membaca dataset lokal untuk otomatisasi retraining...")
+    df = pd.read_csv(data_path)
+    
+    # Preprocessing esensial kilat agar pipeline berjalan cepat dan aman
+    df['TotalCharges'] = pd.to_numeric(df['TotalCharges'], errors='coerce')
+    df['TotalCharges'].fillna(df['TotalCharges'].median(), inplace=True)
+    
+    if 'customerID' in df.columns:
+        df = df.drop(columns=['customerID'])
+        
+    df['Churn'] = df['Churn'].map({'Yes': 1, 'No': 0})
+    
     X = df.drop(columns=['Churn'])
     y = df['Churn']
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     
+    # One-hot encoding
+    X_encoded = pd.get_dummies(X, drop_first=True)
+    
+    X_train, X_test, y_train, y_test = train_test_split(
+        X_encoded, y, test_size=0.2, random_state=42, stratify=y
+    )
+    
+    # Tracking otomatis ke MLflow DagsHub
     mlflow.set_experiment("Automated_Retraining")
-    with mlflow.start_run(run_name="GitHub_Actions_Run"):
-        model = RandomForestClassifier(n_estimators=100, max_depth=5, random_state=42)
+    with mlflow.start_run(run_name="GitHub_Actions_Automation"):
+        model = RandomForestClassifier(n_estimators=50, max_depth=5, random_state=42)
         model.fit(X_train, y_train)
         
         acc = model.score(X_test, y_test)
         mlflow.log_metric("accuracy", acc)
         mlflow.sklearn.log_model(model, "automated_model")
-        print(f"[+] Retraining Selesai! Akurasi: {acc:.4f}")
+        print(f"[+] Automated Retraining Sukses! Akurasi Model Baru: {acc:.4f}")
 
 if __name__ == "__main__":
     run_retraining()
