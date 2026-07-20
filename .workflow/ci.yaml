@@ -33,5 +33,6 @@ jobs:
     - name: Run MLflow Project (Retraining)
       env:
         DAGSHUB_CLIENT_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
+        MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }} # atau atur URI DagsHub kalian
       run: |
-        python MLProject/modelling_automation.py 50 5
+        mlflow run MLProject -P n_estimators=50 -P max_depth=5 --env-manager=local

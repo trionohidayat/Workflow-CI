@@ -1,10 +1,8 @@
-name: Customer_Churn_Retraining
-
-conda_env: conda.yaml
-
-environment:
-  DAGSHUB_CLIENT_TOKEN: ""
+name: Telco_Churn_Automation
 
 entry_points:
   main:
-    command: "python modelling_automation.py"
+    parameters:
+      n_estimators: {type: int, default: 50}
+      max_depth: {type: int, default: 5}
+    command: "python modelling_automation.py {n_estimators} {max_depth}"
