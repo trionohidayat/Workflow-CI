@@ -29,7 +29,8 @@ jobs:
         python -m pip install --upgrade pip
         pip install mlflow==2.19.0 dagshub scikit-learn pandas numpy
 
-    # 4. Jalankan MLflow Project secara otomatis dengan menyertakan token lingkungan
+    # 4. Jalankan MLflow Project dengan meneruskan token secara eksplisit
+    # Menggunakan perintah eksekusi langsung agar environment variable terikat sempurna
     - name: Run MLflow Project (Retraining)
       env:
         DAGSHUB_CLIENT_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}

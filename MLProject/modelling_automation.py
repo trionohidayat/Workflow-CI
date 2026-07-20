@@ -6,14 +6,65 @@ import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 
-# PENTING: Menggunakan token dari GitHub Secrets agar otentikasi otomatis berjalan
-dagshub_token = os.getenv("DAGSHUB_CLIENT_TOKEN")
-if dagshub_token:
-    os.environ["DAGSHUB_CLIENT_TOKEN"] = dagshub_token
+# 1. PENTING: Pustaka dagshub versi terbaru akan otomatis membaca variabel 
+# lingkungan DAGSHUB_CLIENT_TOKEN jika tersedia di sistem (Headless Mode)
+if "DAGSHUB_CLIENT_TOKEN" in os.environ:
+    print("[+] Menemukan DAGSHUB_CLIENT_TOKEN, mengaktifkan mode headless auth.")
 
-# Sesuaikan dengan nama repositori DagsHub target utama kalian
+# 2. Konfigurasi repositori target di DagsHub
 REPO_OWNER = "trionohidayat3"
 REPO_NAME = "my-first-repo"
 
 print(f"[-] Menginisialisasi DagsHub untuk {REPO_OWNER}/{REPO_NAME}...")
 dagshub.init(repo_owner=REPO_OWNER, repo_name=REPO_NAME, mlflow=True)
+
+def run_retraining():
+    # 3. Membaca dataset lokal dari root repository
+    data_path = "WA_Fn-UseC_-Telco-Customer-Churn.csv"
+    
+    if not os.path.exists(data_path):
+        raise FileNotFoundError(f"Dataset tidak ditemukan di jalur: {os.path.abspath(data_path)}")
+        
+    print(f"[-] Membaca dataset lokal untuk otomatisasi retraining...")
+    df = pd.read_csv(data_path)
+    
+    # 4. Proses Preprocessing Kilat untuk Otomatisasi Pipeline
+    df['TotalCharges'] = pd.to_numeric(df['TotalCharges'], errors='coerce')
+    df['TotalCharges'].fillna(df['TotalCharges'].median(), inplace=True)
+    
+    if 'customerID' in df.columns:
+        df = df.drop(columns=['customerID'])
+        
+    df['Churn'] = df['Churn'].map({'Yes': 1, 'No': 0})
+    
+    X = df.drop(columns=['Churn'])
+    y = df['Churn']
+    
+    # One-hot encoding untuk fitur kategorikal
+    X_encoded = pd.get_dummies(X, drop_first=True)
+    
+    # Split data secara konsisten
+    X_train, X_test, y_train, y_test = train_test_split(
+        X_encoded, y, test_size=0.2, random_state=42, stratify=y
+    )
+    
+    # 5. Eksperimen dan Tracking Otomatis menggunakan MLflow
+    mlflow.set_experiment("Automated_Retraining")
+    with mlflow.start_run(run_name="GitHub_Actions_Automation"):
+        print("[-] Melatih model automasi...")
+        model = RandomForestClassifier(n_estimators=50, max_depth=5, random_state=42)
+        model.fit(X_train, y_train)
+        
+        # Evaluasi Metrik
+        acc = model.score(X_test, y_test)
+        
+        # Log Parameter, Metrik, dan Model
+        mlflow.log_param("n_estimators", 50)
+        mlflow.log_param("max_depth", 5)
+        mlflow.log_metric("accuracy", acc)
+        mlflow.sklearn.log_model(model, "automated_model")
+        
+        print(f"[+] Automated Retraining Sukses! Akurasi Model Baru: {acc:.4f}")
+
+if __name__ == "__main__":
+    run_retraining()
