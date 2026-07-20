@@ -33,8 +33,5 @@ jobs:
     - name: Run MLflow Project (Retraining)
       env:
         DAGSHUB_CLIENT_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
-        MLFLOW_TRACKING_USERNAME: trionohidayat3
-        MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
       run: |
-        # Jalankan script otomasi secara langsung dari root folder proyek
         python MLProject/modelling_automation.py
