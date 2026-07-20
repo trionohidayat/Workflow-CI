@@ -19,13 +19,15 @@ print(f"[-] Menginisialisasi DagsHub untuk {REPO_OWNER}/{REPO_NAME}...")
 dagshub.init(repo_owner=REPO_OWNER, repo_name=REPO_NAME, mlflow=True)
 
 def run_retraining():
-    # 3. Membaca dataset lokal dari root repository
+    # Cek jalur dataset yang fleksibel untuk pengujian lokal maupun runner GitHub
     data_path = "WA_Fn-UseC_-Telco-Customer-Churn.csv"
-    
     if not os.path.exists(data_path):
-        raise FileNotFoundError(f"Dataset tidak ditemukan di jalur: {os.path.abspath(data_path)}")
+        data_path = "../WA_Fn-UseC_-Telco-Customer-Churn.csv"
         
-    print(f"[-] Membaca dataset lokal untuk otomatisasi retraining...")
+    if not os.path.exists(data_path):
+        raise FileNotFoundError(f"Dataset tidak ditemukan di jalur lokal maupun parent directory.")
+        
+    print(f"[-] Membaca dataset dari jalur: {data_path}")
     df = pd.read_csv(data_path)
     
     # 4. Proses Preprocessing Kilat untuk Otomatisasi Pipeline
